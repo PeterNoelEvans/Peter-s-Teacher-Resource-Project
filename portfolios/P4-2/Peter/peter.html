@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Peter Evans's Portfolio</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        .gallery {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 16px; /* Space between images */
+        }
+
+        .img-container {
+            border: 2px solid #ec4343;
+            padding: 8px;
+            transition: transform 0.2s; /* Smooth scaling on hover */
+            width: 300px; /* fixed width for the container */
+            height: auto; /* height adjusts automatically */
+            overflow: hidden; /* hides any part of the img that exceeds the dimensions */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .img-container img {
+            height: auto;
+            max-width: 100%; /* ensures images are not stretched */
+            max-height: 200px; /* you can adjust this value based on your preference */
+        }
+
+        .img-container:hover {
+            transform: scale(1.1); /* Slightly enlarge images on hover */
+            cursor: pointer;
+            border-color: #4fb92f;
+        }
+
+        .view-counter {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 16px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .view-counter:hover {
+            transform: scale(1.1);
+            background: rgba(0, 0, 0, 0.9);
+        }
+
+        #viewCount {
+            font-weight: bold;
+            color: #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <h1>Peter Evans's Portfolio</h1>
+    
+    <!-- Add view counter div -->
+    <div id="viewCounter" class="view-counter">
+        👁️ Views: <span id="viewCount">0</span>
+    </div>
+
+    <div class="gallery">
+        <div class="img-container">
+            <img src="peter1.jpg" alt="Description of peter1.jpg">
+        </div>
+        <div class="img-container">
+            <img src="peterriver.jpg" alt="Description of peter2.jpg">
+        </div>
+        <div class="img-container">
+            <img src="poster.jpg" alt="Description of poster.jpg">
+        </div>
+        <div class="img-container">
+            <img src="yaelnittiphum.jpg" alt="Description of yaelnittiphum.jpg">
+        </div>
+        <div class="img-container">
+            <img src="pattaya.jpg" alt="Description of pattaya.jpg">
+        </div>
+        <div class="img-container">
+            <img src="peter.jpg" alt="Description of peter.jpg">
+        </div>
+        <div class="img-container">
+            <img src="peter2.jpg" alt="Description of peter2.jpg">
+        </div>
+        <!-- Add more images as needed -->
+    </div>
+
+    <script>
+        // Add debug logging function
+        function debugLog(message, data) {
+            console.log(`%c${message}`, 'color: blue; font-weight: bold', data);
+        }
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            debugLog('Starting view counter update');
+            
+            try {
+                const url = '/api/views/Peter/portfolio';
+                debugLog('Fetching from URL:', url);
+
+                const response = await fetch(url);
+                debugLog('Response status:', response.status);
+                debugLog('Response headers:', Object.fromEntries(response.headers));
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                debugLog('Received data:', data);
+                
+                const viewCountElement = document.getElementById('viewCount');
+                if (viewCountElement) {
+                    viewCountElement.textContent = data.views;
+                    debugLog('Updated view count element with:', data.views);
+                } else {
+                    console.error('Could not find viewCount element!');
+                }
+                
+            } catch (error) {
+                console.error('Error in view counter:', error);
+                // Show error in the counter
+                const viewCountElement = document.getElementById('viewCount');
+                if (viewCountElement) {
+                    viewCountElement.textContent = 'Error';
+                    viewCountElement.style.color = 'red';
+                }
+            }
+        });
+
+        // Add visibility change detection
+        document.addEventListener('visibilitychange', () => {
+            debugLog('Page visibility changed:', document.visibilityState);
+        });
+    </script>
+</body>
+</html>

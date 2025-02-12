@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <h1>Welcome <span id="studentName">Student</span>!</h1>
+        
+        <!-- Sharing Preferences Section -->
+        <div class="sharing-preferences">
+            <h2>Sharing Settings</h2>
+            <div class="sharing-options">
+                <label class="switch">
+                    <input type="checkbox" id="sharingToggle">
+                    <span class="slider round"></span>
+                </label>
+                <span class="sharing-text">Allow sharing my work with other parents</span>
+            </div>
+            <p class="sharing-status" id="sharingStatus">
+                Currently: <span id="currentStatus">Please select sharing preference</span>
+            </p>
+        </div>
+
+        <!-- Continue Button -->
+        <div class="continue-section">
+            <button id="continueBtn" disabled>Continue to Portfolio</button>
+        </div>
+    </div>
+    <script src="dashboard.js"></script>
+</body>
+</html> 
