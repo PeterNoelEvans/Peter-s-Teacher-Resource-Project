@@ -722,7 +722,7 @@ app.get('/api/subjects/:subjectId/resources', auth, async (req, res) => {
 });
 
 // Add a new resource
-app.post('/api/resources', auth, upload.single('file'), async (req, res) => {
+app.post('/api/resources', auth, upload.array('files'), async (req, res) => {
     try {
         const { title, description, type, url, subjectId, unitId, partId, sectionId } = req.body;
         
@@ -756,28 +756,55 @@ app.post('/api/resources', auth, upload.single('file'), async (req, res) => {
             });
         }
 
-        // Handle file path for uploaded resources
-        let filePath = null;
-        if (req.file) {
-            filePath = `/uploads/resources/${req.file.filename}`;
-        } else if (type === 'link' && url) {
-            filePath = url;
-        }
+        // Handle multiple files
+        const resources = [];
         
-        const resource = await prisma.resource.create({
-            data: {
-                title,
-                description,
-                type,
-                url: filePath,
-                topic: {
-                    connect: { id: topic.id }
-                },
-                createdBy: { connect: { id: req.user.userId } }
-            }
-        });
+        // Handle URL if provided
+        if (type === 'link' && url) {
+            const resource = await prisma.resource.create({
+                data: {
+                    title,
+                    description,
+                    type,
+                    url: url,
+                    topic: {
+                        connect: { id: topic.id }
+                    },
+                    createdBy: { connect: { id: req.user.userId } }
+                }
+            });
+            resources.push(resource);
+        }
 
-        res.json(resource);
+        // Handle uploaded files
+        if (req.files && req.files.length > 0) {
+            for (const file of req.files) {
+                const filePath = `/uploads/resources/${file.filename}`;
+                const fileType = file.mimetype.startsWith('audio/') ? 'audio' :
+                               file.mimetype.startsWith('image/') ? 'image' :
+                               file.mimetype.startsWith('video/') ? 'video' : 'document';
+                
+                const resource = await prisma.resource.create({
+                    data: {
+                        title: `${title} - ${file.originalname}`,
+                        description,
+                        type: fileType,
+                        url: filePath,
+                        topic: {
+                            connect: { id: topic.id }
+                        },
+                        createdBy: { connect: { id: req.user.userId } }
+                    }
+                });
+                resources.push(resource);
+            }
+        }
+
+        res.json({
+            success: true,
+            message: `Created ${resources.length} resource(s)`,
+            resources
+        });
     } catch (error) {
         console.error('Error creating resource:', error);
         res.status(500).json({ error: 'Failed to create resource' });
@@ -1122,10 +1149,29 @@ app.get('/api/debug/all-subjects', async (req, res) => {
 // Debug endpoint to update student year level
 app.post('/api/debug/update-year-level', auth, async (req, res) => {
     try {
+        const { yearLevel, class: classValue } = req.body;
+        
+        if (!yearLevel || yearLevel < 1 || yearLevel > 9) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Invalid year level. Must be between 1 and 9.' 
+            });
+        }
+
+        // Validate that the class matches the year level
+        const expectedPrefix = yearLevel <= 6 ? `P${yearLevel}` : `M${yearLevel - 6}`;
+        if (!classValue || !classValue.startsWith(expectedPrefix)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Class must match the selected year level'
+            });
+        }
+
         const user = await prisma.user.update({
             where: { id: req.user.userId },
             data: {
-                yearLevel: 7  // Set to M1
+                yearLevel: parseInt(yearLevel),
+                class: classValue
             },
             select: {
                 id: true,
@@ -1139,12 +1185,15 @@ app.post('/api/debug/update-year-level', auth, async (req, res) => {
         
         res.json({
             success: true,
-            message: 'Year level updated to M1 (7)',
+            message: `Year level updated to ${yearLevel <= 6 ? 'P' + yearLevel : 'M' + (yearLevel - 6)} and class to ${classValue}`,
             user
         });
     } catch (error) {
         console.error('Debug error:', error);
-        res.status(500).json({ error: 'Failed to update year level' });
+        res.status(500).json({ 
+            success: false,
+            error: 'Failed to update year level and class'
+        });
     }
 });
 
@@ -1928,6 +1977,70 @@ app.delete('/api/assessments/:assessmentId', auth, async (req, res) => {
     } catch (error) {
         console.error('Error deleting assessment:', error);
         res.status(500).json({ error: 'Failed to delete assessment' });
+    }
+});
+
+// Delete a section
+app.delete('/api/sections/:sectionId', auth, async (req, res) => {
+    try {
+        const { sectionId } = req.params;
+
+        // First, delete all assessments associated with this section
+        await prisma.assessment.deleteMany({
+            where: { sectionId }
+        });
+
+        // Delete any resources associated with this section
+        await prisma.resource.deleteMany({
+            where: { sectionId }
+        });
+
+        // Finally, delete the section itself
+        await prisma.section.delete({
+            where: { id: sectionId }
+        });
+
+        res.json({ success: true, message: 'Section deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting section:', error);
+        res.status(500).json({ error: 'Failed to delete section' });
+    }
+});
+
+// Delete a part
+app.delete('/api/parts/:partId', auth, async (req, res) => {
+    try {
+        const { partId } = req.params;
+
+        // First, get all sections in this part
+        const sections = await prisma.section.findMany({
+            where: { partId }
+        });
+
+        // Delete assessments and resources for each section
+        for (const section of sections) {
+            await prisma.assessment.deleteMany({
+                where: { sectionId: section.id }
+            });
+            await prisma.resource.deleteMany({
+                where: { sectionId: section.id }
+            });
+        }
+
+        // Delete all sections in this part
+        await prisma.section.deleteMany({
+            where: { partId }
+        });
+
+        // Finally, delete the part itself
+        await prisma.part.delete({
+            where: { id: partId }
+        });
+
+        res.json({ success: true, message: 'Part deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting part:', error);
+        res.status(500).json({ error: 'Failed to delete part' });
     }
 });
 

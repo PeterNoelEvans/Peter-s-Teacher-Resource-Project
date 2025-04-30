@@ -154,10 +154,10 @@
                             <input type="url" class="form-control" id="resourceUrl">
                         </div>
                         <div id="fileInput" class="mb-3">
-                            <label for="resourceFile" class="form-label">File</label>
-                            <input type="file" class="form-control" id="resourceFile">
+                            <label for="resourceFile" class="form-label">File(s)</label>
+                            <input type="file" class="form-control" id="resourceFile" multiple>
                             <small class="form-text text-muted">
-                                Supported formats: PDF, Word, Text, MP3, WAV, MP4, WebM, JPG, PNG, GIF
+                                You can select multiple files of the same type. Supported formats: PDF, Word, Text, MP3, WAV, MP4, WebM, JPG, PNG, GIF
                             </small>
                         </div>
                     </form>
@@ -426,7 +426,10 @@
                 } else {
                     const fileInput = document.getElementById('resourceFile');
                     if (fileInput.files.length > 0) {
-                        formData.append('file', fileInput.files[0]);
+                        // Append each file to the formData
+                        for (let i = 0; i < fileInput.files.length; i++) {
+                            formData.append('files', fileInput.files[i]);
+                        }
                     }
                 }
 
@@ -440,6 +443,11 @@
 
                 if (!response.ok) {
                     throw new Error('Failed to create resource');
+                }
+
+                const result = await response.json();
+                if (!result.success) {
+                    throw new Error(result.error || 'Failed to create resource');
                 }
 
                 // Reset form and reload resources
