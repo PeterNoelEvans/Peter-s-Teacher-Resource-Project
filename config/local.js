@@ -1,10 +1,9 @@
 module.exports = {
     // Database configuration
     database: {
-        provider: 'sqlite',
-        url: 'file:./dev.db',
-        // Use SQLite for local development
-        // This ensures your local development is independent of production database
+        provider: 'postgresql',
+        url: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/teacher_resource_db',
+        // Use PostgreSQL for local development
     },
 
     // File storage configuration
@@ -17,7 +16,7 @@ module.exports = {
 
     // Server configuration
     server: {
-        port: 3000,
+        port: 3001,
         host: 'localhost',
         // Local development server settings
     },
